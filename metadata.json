@@ -1,0 +1,6 @@
+{
+  "name": "SpendSmart",
+  "description": "A DSA-Based Personal Finance Dashboard for College Students",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

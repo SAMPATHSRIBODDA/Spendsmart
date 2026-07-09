@@ -1,0 +1,35 @@
+{
+  "users": [],
+  "budgets": [
+    {
+      "userId": "a67h63epr",
+      "month": "2026-07",
+      "pocketMoney": 0,
+      "savingsGoal": 0,
+      "allocated": {
+        "food": 0,
+        "transport": 0,
+        "shopping": 0,
+        "entertainment": 0,
+        "emergency": 0,
+        "stationery": 0,
+        "savings": 0,
+        "other": 0
+      },
+      "_id": "7y1sf1u9c",
+      "createdAt": "2026-07-09T18:27:25.825Z"
+    }
+  ],
+  "expenses": [],
+  "notifications": [
+    {
+      "userId": "a67h63epr",
+      "type": "success",
+      "title": "New Monthly Budget Created",
+      "message": "A new budget for 2026-07 has been initialized with ₹0 pocket money allocation.",
+      "read": false,
+      "_id": "hltp4k8ph",
+      "createdAt": "2026-07-09T18:27:25.925Z"
+    }
+  ]
+}
