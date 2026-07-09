@@ -1,31 +1,45 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-const EMAIL_USER = process.env.EMAIL_USER;
-const EMAIL_PASS = process.env.EMAIL_PASS;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const resend = new Resend(RESEND_API_KEY);
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: EMAIL_USER,
-    pass: EMAIL_PASS,
-  },
-});
-
-export const sendOTP = async (email: string, otp: string, type: "login" | "signup"): Promise<boolean> => {
-  if (!EMAIL_USER || !EMAIL_PASS) {
-    console.warn(`[MAILER] No EMAIL_USER/EMAIL_PASS provided. Printing OTP for ${email}: ${otp}`);
+// Helper function to send email via Resend API
+const sendResendEmail = async (to: string, subject: string, text: string, html: string): Promise<boolean> => {
+  if (!RESEND_API_KEY) {
+    console.warn(`[MAILER] No RESEND_API_KEY provided. Skipping email to ${to}`);
     return true; // Pretend it succeeded for local dev testing
   }
 
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'SpendSmart <onboarding@resend.dev>',
+      to,
+      subject,
+      text,
+      html,
+    });
+
+    if (error) {
+      console.error("[MAILER] Resend API Error:", error);
+      return false;
+    }
+    
+    console.log(`[MAILER] Email successfully sent to ${to} via Resend. ID: ${data?.id}`);
+    return true;
+  } catch (error) {
+    console.error("[MAILER] Exception sending email via Resend:", error);
+    return false;
+  }
+};
+
+export const sendOTP = async (email: string, otp: string, type: "login" | "signup"): Promise<boolean> => {
+  if (!RESEND_API_KEY) {
+    console.warn(`[MAILER] No RESEND_API_KEY provided. Printing OTP for ${email}: ${otp}`);
+    return true; 
+  }
+
   const subject = type === "signup" ? "Verify your SpendSmart Account" : "Your SpendSmart Login Code";
-  const text = `Hello!
-
-Your verification code is: ${otp}
-
-This code will expire in 10 minutes.
-
-Thanks,
-The SpendSmart Team`;
+  const text = `Hello!\n\nYour verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nThanks,\nThe SpendSmart Team`;
 
   const html = `
     <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
@@ -38,27 +52,10 @@ The SpendSmart Team`;
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"SpendSmart" <${EMAIL_USER}>`,
-      to: email,
-      subject,
-      text,
-      html,
-    });
-    return true;
-  } catch (error) {
-    console.error("Error sending OTP email:", error);
-    return false;
-  }
+  return sendResendEmail(email, subject, text, html);
 };
 
 export const sendNotificationEmail = async (email: string, title: string, message: string, type: "info" | "warning" | "success"): Promise<boolean> => {
-  if (!EMAIL_USER || !EMAIL_PASS) {
-    console.warn(`[MAILER] No EMAIL_USER/EMAIL_PASS. Skipping notification email to ${email}`);
-    return true;
-  }
-
   const typeColors = {
     info: "#3b82f6",
     warning: "#ef4444",
@@ -66,15 +63,7 @@ export const sendNotificationEmail = async (email: string, title: string, messag
   };
   const color = typeColors[type] || "#3b82f6";
 
-  const text = `Hello,
-
-${title}
-${message}
-
-View your dashboard for more details.
-
-Thanks,
-The SpendSmart Team`;
+  const text = `Hello,\n\n${title}\n${message}\n\nView your dashboard for more details.\n\nThanks,\nThe SpendSmart Team`;
 
   const html = `
     <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; border-top: 4px solid ${color};">
@@ -82,42 +71,17 @@ The SpendSmart Team`;
       <h3 style="color: ${color};">${title}</h3>
       <p style="color: #475569; line-height: 1.6;">${message}</p>
       <p style="color: #64748b; font-size: 14px; margin-top: 30px;">
-        View your <a href="http://localhost:5173/dashboard" style="color: #2563eb; text-decoration: none;">dashboard</a> for more details.
+        View your <a href="https://spendsmart.onrender.com/dashboard" style="color: #2563eb; text-decoration: none;">dashboard</a> for more details.
       </p>
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"SpendSmart" <${EMAIL_USER}>`,
-      to: email,
-      subject: `SpendSmart Update: ${title}`,
-      text,
-      html,
-    });
-    return true;
-  } catch (error) {
-    console.error("Error sending Notification email:", error);
-    return false;
-  }
+  return sendResendEmail(email, `SpendSmart Update: ${title}`, text, html);
 };
 
 export const sendWelcomeEmail = async (email: string, name: string): Promise<boolean> => {
-  if (!EMAIL_USER || !EMAIL_PASS) {
-    console.warn(`[MAILER] No EMAIL_USER/EMAIL_PASS. Skipping welcome email to ${email}`);
-    return true;
-  }
-
   const subject = "Welcome to SpendSmart!";
-  const text = `Hi ${name},
-
-Welcome to SpendSmart! Your account has been successfully created.
-We are excited to help you take control of your finances and reach your savings goals.
-
-Head over to your dashboard to set up your first budget!
-
-Best,
-The SpendSmart Team`;
+  const text = `Hi ${name},\n\nWelcome to SpendSmart! Your account has been successfully created.\nWe are excited to help you take control of your finances and reach your savings goals.\n\nHead over to your dashboard to set up your first budget!\n\nBest,\nThe SpendSmart Team`;
 
   const html = `
     <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; border-top: 4px solid #22c55e;">
@@ -125,25 +89,13 @@ The SpendSmart Team`;
       <p style="color: #475569; line-height: 1.6;">Hi ${name},</p>
       <p style="color: #475569; line-height: 1.6;">Your account has been successfully created. We are excited to help you take control of your finances and reach your savings goals.</p>
       <div style="text-align: center; margin: 30px 0;">
-        <a href="http://localhost:5173/dashboard" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Go to Dashboard</a>
+        <a href="https://spendsmart.onrender.com/dashboard" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Go to Dashboard</a>
       </div>
       <p style="color: #64748b; font-size: 14px; margin-top: 30px;">Best,<br/>The SpendSmart Team</p>
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"SpendSmart" <${EMAIL_USER}>`,
-      to: email,
-      subject,
-      text,
-      html,
-    });
-    return true;
-  } catch (error) {
-    console.error("Error sending Welcome email:", error);
-    return false;
-  }
+  return sendResendEmail(email, subject, text, html);
 };
 
 export const sendDailySummaryEmail = async (
@@ -153,11 +105,6 @@ export const sendDailySummaryEmail = async (
   expenses: { category: string; amount: number; description: string }[],
   remainingBudget: number
 ): Promise<boolean> => {
-  if (!EMAIL_USER || !EMAIL_PASS) {
-    console.warn(`[MAILER] No EMAIL_USER/EMAIL_PASS. Skipping daily summary email to ${email}`);
-    return true;
-  }
-
   const subject = "Your Daily SpendSmart Summary";
   const dateStr = new Date().toLocaleDateString("en-IN", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   
@@ -207,25 +154,13 @@ export const sendDailySummaryEmail = async (
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="http://localhost:5173/dashboard" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Dashboard</a>
+        <a href="https://spendsmart.onrender.com/dashboard" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Dashboard</a>
       </div>
       <p style="color: #64748b; font-size: 14px; margin-top: 30px; text-align: center;">Best,<br/>The SpendSmart Team</p>
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"SpendSmart" <${EMAIL_USER}>`,
-      to: email,
-      subject,
-      text: "Please view this email in an HTML compatible client.",
-      html,
-    });
-    return true;
-  } catch (error) {
-    console.error("Error sending daily summary email:", error);
-    return false;
-  }
+  return sendResendEmail(email, subject, "Please view this email in an HTML compatible client.", html);
 };
 
 export const sendMonthlySummaryEmail = async (
@@ -237,11 +172,6 @@ export const sendMonthlySummaryEmail = async (
   actualSavings: number,
   categoryBreakdown: { category: string; amount: number }[]
 ): Promise<boolean> => {
-  if (!EMAIL_USER || !EMAIL_PASS) {
-    console.warn(`[MAILER] No EMAIL_USER/EMAIL_PASS. Skipping monthly summary email to ${email}`);
-    return true;
-  }
-
   const subject = `Your Monthly SpendSmart Summary: ${monthName}`;
   
   let categoryHtml = "";
@@ -290,23 +220,11 @@ export const sendMonthlySummaryEmail = async (
       </table>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="http://localhost:5173/dashboard" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Full Dashboard</a>
+        <a href="https://spendsmart.onrender.com/dashboard" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Full Dashboard</a>
       </div>
       <p style="color: #64748b; font-size: 14px; margin-top: 30px; text-align: center;">Best,<br/>The SpendSmart Team</p>
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"SpendSmart" <${EMAIL_USER}>`,
-      to: email,
-      subject,
-      text: "Please view this email in an HTML compatible client.",
-      html,
-    });
-    return true;
-  } catch (error) {
-    console.error("Error sending monthly summary email:", error);
-    return false;
-  }
+  return sendResendEmail(email, subject, "Please view this email in an HTML compatible client.", html);
 };
