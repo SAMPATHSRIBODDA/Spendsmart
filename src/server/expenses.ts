@@ -61,14 +61,16 @@ router.post("/", authMiddleware, async (req: AuthenticatedRequest, res: Response
         userId,
         "success",
         "Savings Recorded Successfully",
-        `Successfully added ₹${amount} to savings for "${description}".`
+        `Successfully added ₹${amount} to savings for "${description}".`,
+        false
       );
     } else {
       NotificationQueueManager.enqueueNotification(
         userId,
         "success",
         "Expense Recorded Successfully",
-        `Recorded expense of ₹${amount} for "${description}".`
+        `Recorded expense of ₹${amount} for "${description}".`,
+        false
       );
     }
 
@@ -187,7 +189,8 @@ router.put("/:id", authMiddleware, async (req: AuthenticatedRequest, res: Respon
       userId,
       "info",
       "Transaction Updated",
-      `Successfully updated details for "${description}" (${category}).`
+      `Successfully updated details for "${description}" (${category}).`,
+      false
     );
 
     // Trigger asynchronous budget threshold checks
@@ -231,7 +234,8 @@ router.delete("/:id", authMiddleware, async (req: AuthenticatedRequest, res: Res
       userId,
       "info",
       "Transaction Deleted",
-      `Deleted transaction "${expenseToDelete.description}" of ₹${expenseToDelete.amount}.`
+      `Deleted transaction "${expenseToDelete.description}" of ₹${expenseToDelete.amount}.`,
+      false
     );
 
     // Trigger asynchronous budget threshold checks

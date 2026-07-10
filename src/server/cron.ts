@@ -3,8 +3,8 @@ import { User, Budget, Expense } from "./db";
 import { sendDailySummaryEmail, sendMonthlySummaryEmail } from "./mailer";
 
 export function initCronJobs() {
-  // Run every day at 11:59 PM (server time)
-  cron.schedule("59 23 * * *", async () => {
+  // Run every day at 8:00 PM (server time)
+  cron.schedule("0 20 * * *", async () => {
     console.log("[CRON] Starting daily expense summary job...");
     try {
       const today = new Date().toISOString().split("T")[0];

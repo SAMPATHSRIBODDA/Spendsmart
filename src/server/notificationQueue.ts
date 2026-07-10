@@ -8,6 +8,7 @@ export class NotificationQueueManager {
     type: "info" | "warning" | "success";
     title: string;
     message: string;
+    sendEmail: boolean;
   }>();
 
   private static isProcessing = false;
@@ -17,9 +18,10 @@ export class NotificationQueueManager {
     userId: string,
     type: "info" | "warning" | "success",
     title: string,
-    message: string
+    message: string,
+    sendEmail: boolean = true
   ): void {
-    this.queue.enqueue({ userId, type, title, message });
+    this.queue.enqueue({ userId, type, title, message, sendEmail });
     this.processQueue();
   }
 
@@ -50,14 +52,16 @@ export class NotificationQueueManager {
               read: false,
             });
 
-            // Send notification email in background
-            try {
-              const user = await User.findOne({ _id: item.userId });
-              if (user && user.email) {
-                sendNotificationEmail(user.email, item.title, item.message, item.type).catch(e => console.error("Notification email error:", e));
+            // Send notification email in background if allowed
+            if (item.sendEmail) {
+              try {
+                const user = await User.findOne({ _id: item.userId });
+                if (user && user.email) {
+                  sendNotificationEmail(user.email, item.title, item.message, item.type).catch(e => console.error("Notification email error:", e));
+                }
+              } catch (err) {
+                console.error("Failed to send notification email:", err);
               }
-            } catch (err) {
-              console.error("Failed to send notification email:", err);
             }
           }
         }
