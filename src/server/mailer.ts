@@ -1,33 +1,40 @@
-import { Resend } from "resend";
+import axios from "axios";
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const resend = new Resend(RESEND_API_KEY);
+// Using Brevo (Sendinblue) HTTP API which works on Render free tier (uses port 443 instead of blocked SMTP ports)
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+// The email address you verify as a sender on Brevo
+const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || "spendsmart@example.com"; 
 
-// Helper function to send email via Resend API
-const sendResendEmail = async (to: string, subject: string, text: string, html: string): Promise<boolean> => {
-  if (!RESEND_API_KEY) {
-    console.warn(`[MAILER] No RESEND_API_KEY provided. Skipping email to ${to}`);
+// Helper function to send email via Brevo HTTP API
+const sendEmail = async (to: string, subject: string, text: string, html: string): Promise<boolean> => {
+  if (!BREVO_API_KEY) {
+    console.warn(`[MAILER] No BREVO_API_KEY provided. Skipping email to ${to}`);
     return true; // Pretend it succeeded for local dev testing
   }
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'SpendSmart <onboarding@resend.dev>',
-      to,
-      subject,
-      text,
-      html,
-    });
+    const response = await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: { name: "SpendSmart", email: SENDER_EMAIL },
+        to: [{ email: to }],
+        subject: subject,
+        textContent: text,
+        htmlContent: html,
+      },
+      {
+        headers: {
+          "api-key": BREVO_API_KEY,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+      }
+    );
 
-    if (error) {
-      console.error("[MAILER] Resend API Error:", error);
-      return false;
-    }
-    
-    console.log(`[MAILER] Email successfully sent to ${to} via Resend. ID: ${data?.id}`);
+    console.log(`[MAILER] Email successfully sent to ${to} via Brevo. ID: ${response.data.messageId}`);
     return true;
-  } catch (error) {
-    console.error("[MAILER] Exception sending email via Resend:", error);
+  } catch (error: any) {
+    console.error("[MAILER] Exception sending email via Brevo API:", error.response?.data || error.message);
     return false;
   }
 };
@@ -52,7 +59,7 @@ export const sendOTP = async (email: string, otp: string, type: "login" | "signu
     </div>
   `;
 
-  return sendResendEmail(email, subject, text, html);
+  return sendEmail(email, subject, text, html);
 };
 
 export const sendNotificationEmail = async (email: string, title: string, message: string, type: "info" | "warning" | "success"): Promise<boolean> => {
@@ -76,7 +83,7 @@ export const sendNotificationEmail = async (email: string, title: string, messag
     </div>
   `;
 
-  return sendResendEmail(email, `SpendSmart Update: ${title}`, text, html);
+  return sendEmail(email, `SpendSmart Update: ${title}`, text, html);
 };
 
 export const sendWelcomeEmail = async (email: string, name: string): Promise<boolean> => {
@@ -95,7 +102,7 @@ export const sendWelcomeEmail = async (email: string, name: string): Promise<boo
     </div>
   `;
 
-  return sendResendEmail(email, subject, text, html);
+  return sendEmail(email, subject, text, html);
 };
 
 export const sendDailySummaryEmail = async (
@@ -160,7 +167,7 @@ export const sendDailySummaryEmail = async (
     </div>
   `;
 
-  return sendResendEmail(email, subject, "Please view this email in an HTML compatible client.", html);
+  return sendEmail(email, subject, "Please view this email in an HTML compatible client.", html);
 };
 
 export const sendMonthlySummaryEmail = async (
@@ -226,5 +233,5 @@ export const sendMonthlySummaryEmail = async (
     </div>
   `;
 
-  return sendResendEmail(email, subject, "Please view this email in an HTML compatible client.", html);
+  return sendEmail(email, subject, "Please view this email in an HTML compatible client.", html);
 };
