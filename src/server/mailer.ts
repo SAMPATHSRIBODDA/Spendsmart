@@ -40,8 +40,8 @@ const sendEmail = async (to: string, subject: string, text: string, html: string
 };
 
 export const sendOTP = async (email: string, otp: string, type: "login" | "signup"): Promise<boolean> => {
-  if (!RESEND_API_KEY) {
-    console.warn(`[MAILER] No RESEND_API_KEY provided. Printing OTP for ${email}: ${otp}`);
+  if (!BREVO_API_KEY) {
+    console.warn(`[MAILER] No BREVO_API_KEY provided. Printing OTP for ${email}: ${otp}`);
     return true; 
   }
 
