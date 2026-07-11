@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import { Budget, Expense } from "./db";
+import { Budget, Expense, Notification } from "./db";
 import { authMiddleware, AuthenticatedRequest } from "./auth";
 import { Queue } from "./dsa";
 import { NotificationQueueManager, checkBudgetThresholds } from "./notificationQueue";
@@ -73,21 +73,21 @@ router.get("/summary", authMiddleware, async (req: AuthenticatedRequest, res: Re
     const currentMonthStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, "0")}`;
 
     if (isRolledOver) {
-      NotificationQueueManager.enqueueNotification(
-        userId,
-        "success",
-        "New Monthly Budget Created",
-        `A new budget for ${month} has been initialized with ₹${budget.pocketMoney} pocket money allocation.`
-      );
+      const title = "New Monthly Budget Created";
+      const message = `A new budget for ${month} has been initialized with ₹${budget.pocketMoney} pocket money allocation.`;
+      const existingNotif = await Notification.findOne({ userId, title, message });
+      if (!existingNotif) {
+        NotificationQueueManager.enqueueNotification(userId, "success", title, message);
+      }
     }
 
     if (month < currentMonthStr) {
-      NotificationQueueManager.enqueueNotification(
-        userId,
-        "success",
-        "Month-End Report Generated",
-        `Month-end report for ${month} is generated! Head to Analytics to view insights.`
-      );
+      const title = "Month-End Report Generated";
+      const message = `Month-end report for ${month} is generated! Head to Analytics to view insights.`;
+      const existingReport = await Notification.findOne({ userId, title, message });
+      if (!existingReport) {
+        NotificationQueueManager.enqueueNotification(userId, "success", title, message);
+      }
     }
 
     // Refresh budget threshold checks
